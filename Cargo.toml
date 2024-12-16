@@ -387,3 +387,12 @@ features = ["derive"]
 [workspace.dependencies.reconnecting-jsonrpsee-ws-client]
 version = "0.4.2"
 default-features = false
+
+runtime-benchmarks = [
+  
+    "ismp-parachain/runtime-benchmarks",
+    "cumulus-pallet-parachain-system/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "parachains-common/runtime-benchmarks"
+]

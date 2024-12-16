@@ -19,6 +19,10 @@
 
 extern crate alloc;
 extern crate core;
+/// Benchmarking setup for ismp-parachain.
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
+
 
 pub mod consensus;
 mod migration;
@@ -31,8 +35,20 @@ use cumulus_pallet_parachain_system::{
 	RelayChainState, RelaychainDataProvider, RelaychainStateProvider,
 };
 use cumulus_primitives_core::relay_chain;
+use frame_support::pallet_prelude::Weight;
 use ismp::{handlers, messaging::CreateConsensusState};
 pub use pallet::*;
+
+/// Weight functions for ismp-parachain.
+pub mod weights;
+
+/// Weights for ismp-parachain pallet extrinsics.
+pub trait WeightInfo {
+    /// Weight of `add_state_machines` extrinsic.
+    fn add_parachain() -> Weight;
+    /// Weight of `remove_state_machines` extrinsic.
+    fn remove_parachain() -> Weight;
+}
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,6 +78,8 @@ pub mod pallet {
 
 		/// The underlying [`IsmpHost`] implementation
 		type IsmpHost: IsmpHost + Default;
+		/// Weight information for extrinsics in this pallet.
+		type WeightInfo: WeightInfo;
 	}
 
 	/// Mapping of relay chain heights to it's state commitment. The state commitment of the parent
@@ -69,8 +87,10 @@ pub mod pallet {
 	/// parachain-system.
 	#[pallet::storage]
 	#[pallet::getter(fn relay_chain_state)]
-	pub type RelayChainStateCommitments<T: Config> =
-		StorageMap<_, Blake2_128Concat, relay_chain::BlockNumber, relay_chain::Hash, OptionQuery>;
+	pub type RelayChainStateCommitments<T>
+	where
+		T: Config,
+	= StorageMap<_, Blake2_128Concat, relay_chain::BlockNumber, relay_chain::Hash, OptionQuery>;
 
 	/// Tracks whether we've already seen the `update_parachain_consensus` inherent
 	#[pallet::storage]
@@ -78,7 +98,10 @@ pub mod pallet {
 
 	/// List of parachains that this state machine is interested in.
 	#[pallet::storage]
-	pub type Parachains<T: Config> = StorageMap<_, Identity, u32, u64>;
+	pub type Parachains<T>
+	where
+		T: Config,
+	= StorageMap<_, Identity, u32, u64>;
 
 	/// Events emitted by this pallet
 	#[pallet::event]
@@ -101,7 +124,7 @@ pub mod pallet {
 		/// This allows block builders submit parachain consensus proofs as inherents. If the
 		/// provided [`ConsensusMessage`] is not for a parachain, this call will fail.
 		#[pallet::call_index(0)]
-		#[pallet::weight((0, DispatchClass::Mandatory))]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_parachain())]
 		pub fn update_parachain_consensus(
 			origin: OriginFor<T>,
 			data: ConsensusMessage,
@@ -130,7 +153,7 @@ pub mod pallet {
 
 		/// Add some new parachains to the parachains whitelist
 		#[pallet::call_index(1)]
-		#[pallet::weight(<T as frame_system::Config>::DbWeight::get().writes(para_ids.len() as u64))]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::add_parachain())]
 		pub fn add_parachain(origin: OriginFor<T>, para_ids: Vec<ParachainData>) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			let host = <T::IsmpHost>::default();
@@ -154,7 +177,7 @@ pub mod pallet {
 
 		/// Removes some parachains from the parachains whitelist
 		#[pallet::call_index(2)]
-		#[pallet::weight(<T as frame_system::Config>::DbWeight::get().writes(para_ids.len() as u64))]
+		#[pallet::weight(<T as pallet::Config>::WeightInfo::remove_parachain())]
 		pub fn remove_parachain(origin: OriginFor<T>, para_ids: Vec<u32>) -> DispatchResult {
 			T::AdminOrigin::ensure_origin(origin)?;
 			for id in &para_ids {

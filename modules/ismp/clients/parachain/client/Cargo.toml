@@ -19,6 +19,8 @@ scale-info = { workspace = true, features = ["derive"] }
 hex-literal = { workspace = true }
 primitive-types = { workspace = true }
 log = { workspace = true }
+frame-benchmarking = { workspace = true, optional = true }
+sp-std = { workspace = true }
 
 # substrate
 frame-support = { workspace = true }
@@ -62,4 +64,10 @@ try-runtime = [
 	"frame-support/try-runtime",
 	"frame-system/try-runtime",
 	"sp-runtime/try-runtime",
+]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-ismp/runtime-benchmarks",
 ]
